@@ -111,7 +111,7 @@ class EMRegistration(object):
         self.X = X.to(self.device)
         self.Y = Y.to(self.device)
         self.TY = Y.to(self.device)
-        self.sigma2 = initialize_sigma2(X, Y).to(self.device) if sigma2 is None else sigma2
+        self.sigma2 = initialize_sigma2(X, Y).float().to(self.device) if sigma2 is None else sigma2
         (self.N, self.D) = self.X.shape
         (self.M, _) = self.Y.shape
         self.tolerance = 0.001 if tolerance is None else tolerance
@@ -121,8 +121,8 @@ class EMRegistration(object):
         self.diff = th.tensor(np.inf)
         self.q = th.tensor(np.inf)
         self.P = th.zeros((self.M, self.N)).to(self.device)
-        self.Pt1 = th.zeros((self.N, )).to(self.device)
-        self.P1 = th.zeros((self.M, )).to(self.device)
+        self.Pt1 = th.zeros((self.N, 1)).to(self.device)
+        self.P1 = th.zeros((self.M, 1)).to(self.device)
         self.PX = th.zeros((self.M, self.D)).to(self.device)
         self.Np = 0
 
@@ -193,18 +193,18 @@ class EMRegistration(object):
         """
         Compute the expectation step of the EM algorithm.
         """
-        P = th.sum((self.X[None, :, :] - self.TY[:, None, :])**2, axis=2) # (M, N)
+        P = th.sum((self.X[None, :, :] - self.TY[:, None, :])**2, dim=2) # (M, N)
         P = th.exp(-P/(2*self.sigma2))
         c = (2*th.tensor(np.pi)*self.sigma2)**(self.D/2)*self.w/(1. - self.w)*self.M/self.N
 
-        den = th.sum(P, axis = 0, keepdims = True) # (1, N)
+        den = th.sum(P, dim = 0, keepdims = True) # (1, N)
         den = th.clamp(den, th.finfo(self.X.dtype).eps, None) + c
 
         self.P = th.div(P, den)
-        self.Pt1 = th.sum(self.P, axis=0)
-        self.P1 = th.sum(self.P, axis=1)
+        self.Pt1 = th.sum(self.P, dim=0).reshape(-1, 1)
+        self.P1 = th.sum(self.P, dim=1).reshape(-1, 1)
         self.Np = th.sum(self.P1)
-        self.PX = th.matmul(self.P, self.X)
+        self.PX = th.mm(self.P, self.X)
 
     def maximization(self):
         """

@@ -43,9 +43,9 @@ class DeformableRegistration(EMRegistration):
         Calculate a new estimate of the deformable transformation.
         See Eq. 22 of https://arxiv.org/pdf/0905.2635.pdf.
         """
-        A = th.mm(th.diag(self.P1), self.G) + \
+        A = th.mm(th.diag(self.P1.reshape(-1, )), self.G) + \
             self.alpha * self.sigma2 * th.eye(self.M).to(self.device)
-        B = self.PX - th.mm(th.diag(self.P1), self.Y)
+        B = self.PX - th.mm(th.diag(self.P1.reshape(-1, )), self.Y)
         self.W = th.linalg.solve(A, B)
 
 
@@ -84,9 +84,8 @@ class DeformableRegistration(EMRegistration):
         # This functional will include terms from both the negative log-likelihood and
         # the Gaussian kernel used for regularization.
         self.q = np.inf
-
-        xPx = th.sum(th.mul(self.Pt1, th.sum(th.mul(self.X, self.X), axis=1)))
-        yPy = th.sum(th.mul(self.P1, th.sum(th.mul(self.TY, self.TY), axis=1)))
+        xPx = th.mm(self.Pt1.permute(1, 0), th.sum(th.mul(self.X, self.X), axis=1).reshape(-1, 1))
+        yPy = th.mm(self.P1.permute(1, 0), th.sum(th.mul(self.TY, self.TY), axis=1).reshape(-1, 1))
         trPXY = th.sum(th.mul(self.TY, self.PX))
 
         self.sigma2 = (xPx - 2 * trPXY + yPy) / (self.Np * self.D)

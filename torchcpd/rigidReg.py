@@ -1,5 +1,6 @@
 from builtins import super
 import numpy as np
+import torch as th
 import numbers
 from .emregistration import EMRegistration
 from .utils import is_positive_semi_definite
@@ -49,46 +50,40 @@ class RigidRegistration(EMRegistration):
             raise ValueError(
                 'The scale factor must be a positive number. Instead got: {}.'.format(s))
 
-        self.R = np.eye(self.D) if R is None else R
-        self.t = np.atleast_2d(np.zeros((1, self.D))) if t is None else t
-        self.s = 1 if s is None else s
+        self.R = th.eye(self.D).to(self.device) if R is None else R
+        self.t = th.atleast_2d(th.zeros((self.D, ))).to(self.device) if t is None else t
+        self.s = th.tensor(1).to(self.device) if s is None else s
         self.scale = scale
 
     def update_transform(self):
         """
         Calculate a new estimate of the rigid transformation.
         """
-
         # target point cloud mean
-        muX = np.divide(np.sum(self.PX, axis=0),
-                        self.Np)
+        muX = th.div(th.sum(self.PX, dim=0),self.Np)
         # source point cloud mean
-        muY = np.divide(
-            np.sum(np.dot(np.transpose(self.P), self.Y), axis=0), self.Np)
-
-        self.X_hat = self.X - np.tile(muX, (self.N, 1))
+        muY = th.div(th.sum(th.mm(self.P.permute(1, 0), self.Y), dim=0), self.Np)
+        self.X_hat = self.X - th.tile(muX, (self.N, 1))
         # centered source point cloud
-        Y_hat = self.Y - np.tile(muY, (self.M, 1))
-        self.YPY = np.dot(np.transpose(self.P1), np.sum(
-            np.multiply(Y_hat, Y_hat), axis=1))
+        Y_hat = self.Y - th.tile(muY, (self.M, 1))
+        self.YPY = th.mm(self.P1.permute(1, 0), th.sum(th.mul(Y_hat, Y_hat), dim=1).reshape(-1, 1)).reshape(-1, )
 
-        self.A = np.dot(np.transpose(self.X_hat), np.transpose(self.P))
-        self.A = np.dot(self.A, Y_hat)
+        self.A = th.mm(self.X_hat.permute(1, 0), self.P.permute(1, 0)).to(self.device)
+        self.A = th.mm(self.A, Y_hat)
 
         # Singular value decomposition as per lemma 1 of https://arxiv.org/pdf/0905.2635.pdf.
-        U, _, V = np.linalg.svd(self.A, full_matrices=True)
-        C = np.ones((self.D, ))
-        C[self.D-1] = np.linalg.det(np.dot(U, V))
+        U, _, V = th.linalg.svd(self.A, full_matrices=True)
+        C = th.ones((self.D, )).to(self.device)
+        C[self.D-1] = th.linalg.det(th.mm(U, V))
 
         # Calculate the rotation matrix using Eq. 9 of https://arxiv.org/pdf/0905.2635.pdf.
-        self.R = np.transpose(np.dot(np.dot(U, np.diag(C)), V))
+        self.R = (th.mm(th.mm(U, th.diag(C)), V)).permute(1, 0)
         # Update scale and translation using Fig. 2 of https://arxiv.org/pdf/0905.2635.pdf.
         if self.scale is True:
-            self.s = np.trace(np.dot(np.transpose(self.A), np.transpose(self.R))) / self.YPY
+            self.s = th.trace(th.mm(self.A.permute(1, 0), self.R.permute(1, 0))) / self.YPY
         else:
             pass
-        self.t = np.transpose(muX) - self.s * \
-            np.dot(np.transpose(self.R), np.transpose(muY))
+        self.t = muX - self.s * th.mm(self.R.permute(1, 0), muY.reshape(-1, 1)).reshape(-1, )
 
     def transform_point_cloud(self, Y=None):
         """
@@ -107,10 +102,10 @@ class RigidRegistration(EMRegistration):
         Otherwise, returns the transformed Y.
         """
         if Y is None:
-            self.TY = self.s * np.dot(self.Y, self.R) + self.t
+            self.TY = self.s * th.mm(self.Y, self.R) + self.t
             return
         else:
-            return self.s * np.dot(Y, self.R) + self.t
+            return self.s * th.mm(Y, self.R) + self.t
 
     def update_variance(self):
         """
@@ -118,16 +113,16 @@ class RigidRegistration(EMRegistration):
         See the update rule for sigma2 in Fig. 2 of of https://arxiv.org/pdf/0905.2635.pdf.
         """
         qprev = self.q
-
-        trAR = np.trace(np.dot(self.A, self.R))
-        xPx = np.dot(np.transpose(self.Pt1), np.sum(
-            np.multiply(self.X_hat, self.X_hat), axis=1))
+        trAR = th.trace(th.mm(self.A, self.R))
+        xPx = th.mm(self.Pt1.permute(1, 0), th.sum(
+            th.mul(self.X_hat, self.X_hat), dim=1).reshape(-1, 1)).reshape(-1, )
         self.q = (xPx - 2 * self.s * trAR + self.s * self.s * self.YPY) / \
-            (2 * self.sigma2) + self.D * self.Np/2 * np.log(self.sigma2)
-        self.diff = np.abs(self.q - qprev)
+            (2 * self.sigma2) + self.D * self.Np/2 * th.log(self.sigma2)
+        print(self.q)
+        self.diff = th.abs(self.q - qprev)
         self.sigma2 = (xPx - self.s * trAR) / (self.Np * self.D)
         if self.sigma2 <= 0:
-            self.sigma2 = self.tolerance / 10
+            self.sigma2 = th.tensor(self.tolerance / 10).float().to(self.device)
 
     def get_registration_parameters(self):
         """

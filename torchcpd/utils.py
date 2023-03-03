@@ -10,10 +10,10 @@ def gaussian_kernel(X, beta, Y=None):
 
 
 def is_positive_semi_definite(R):
-    if not isinstance(R, (np.ndarray, np.generic)):
+    if not th.is_tensor(R):
         raise ValueError('Encountered an error while checking if the matrix is positive semi definite. \
-            Expected a numpy array, instead got : {}'.format(R))
-    return np.all(np.linalg.eigvals(R) > 0)
+            Expected a tensor, instead got : {}'.format(R))
+    return th.all(th.real(th.linalg.eigvals(R))>0)
 
 def low_rank_eigen(G, num_eig):
     """
