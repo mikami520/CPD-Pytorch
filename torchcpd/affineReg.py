@@ -1,4 +1,5 @@
 from builtins import super
+import torch as th
 import numpy as np
 from .emregistration import EMRegistration
 from .utils import is_positive_semi_definite
@@ -34,8 +35,8 @@ class AffineRegistration(EMRegistration):
             raise ValueError(
                 'The translation vector can only be initialized to 1x{} positive semi definite matrices. Instead got: {}.'.format(self.D, t))
         
-        self.B = np.eye(self.D) if B is None else B
-        self.t = np.atleast_2d(np.zeros((1, self.D))) if t is None else t
+        self.B = th.eye(self.D).to(self.device) if B is None else B
+        self.t = th.atleast_2d(th.zeros((1, self.D))).to(self.device) if t is None else t
 
         self.YPY = None
         self.X_hat = None
@@ -47,24 +48,22 @@ class AffineRegistration(EMRegistration):
         """
 
         # source and target point cloud means
-        muX = np.divide(np.sum(self.PX, axis=0), self.Np)
-        muY = np.divide(
-            np.sum(np.dot(np.transpose(self.P), self.Y), axis=0), self.Np)
+        muX = th.div(th.sum(self.PX, dim=0), self.Np)
+        muY = th.div(th.sum(th.mm(self.P.permute(1, 0), self.Y), dim=0), self.Np)
 
-        self.X_hat = self.X - np.tile(muX, (self.N, 1))
-        Y_hat = self.Y - np.tile(muY, (self.M, 1))
+        self.X_hat = th.sub(self.X, muX.repeat(self.N, 1))
+        Y_hat = th.sub(self.Y, muY.repeat(self.M, 1))
 
-        self.A = np.dot(np.transpose(self.X_hat), np.transpose(self.P))
-        self.A = np.dot(self.A, Y_hat)
+        self.A = th.mm(self.X_hat.permute(1,0), self.P.permute(1,0))
+        self.A = th.mm(self.A, Y_hat)
 
-        self.YPY = np.dot(np.transpose(Y_hat), np.diag(self.P1))
-        self.YPY = np.dot(self.YPY, Y_hat)
+        self.YPY = th.mm(Y_hat.permute(1, 0), th.diag(self.P1.reshape(-1, )))
+        self.YPY = th.mm(self.YPY, Y_hat)
 
         # Calculate the new estimate of affine parameters using update rules for (B, t)
         # as defined in Fig. 3 of https://arxiv.org/pdf/0905.2635.pdf.
-        self.B = np.linalg.solve(np.transpose(self.YPY), np.transpose(self.A))
-        self.t = np.transpose(
-            muX) - np.dot(np.transpose(self.B), np.transpose(muY))
+        self.B = th.linalg.solve(self.YPY.permute(1,0), self.A.permute(1,0))
+        self.t = (muX.reshape(-1, 1) - th.mm(self.B.permute(1, 0), muY.reshape(-1, 1))).permute(1, 0)
 
     def transform_point_cloud(self, Y=None):
         """
@@ -83,10 +82,11 @@ class AffineRegistration(EMRegistration):
         Otherwise, returns the transformed Y.
         """
         if Y is None:
-            self.TY = np.dot(self.Y, self.B) + np.tile(self.t, (self.M, 1))
+            #print(self.Y.shape, self.B.shape, self.t.shape)
+            self.TY = th.mm(self.Y, self.B) + self.t.repeat(self.M, 1)
             return
         else:
-            return np.dot(Y, self.B) + np.tile(self.t, (Y.shape[0], 1))
+            return th.mm(Y, self.B) + self.t.repeat(Y.shape[0], 1)
 
     def update_variance(self):
         """
@@ -95,18 +95,17 @@ class AffineRegistration(EMRegistration):
         """
         qprev = self.q
 
-        trAB = np.trace(np.dot(self.A, self.B))
-        xPx = np.dot(np.transpose(self.Pt1), np.sum(
-            np.multiply(self.X_hat, self.X_hat), axis=1))
-        trBYPYP = np.trace(np.dot(np.dot(self.B, self.YPY), self.B))
-        self.q = (xPx - 2 * trAB + trBYPYP) / (2 * self.sigma2) + \
-            self.D * self.Np/2 * np.log(self.sigma2)
-        self.diff = np.abs(self.q - qprev)
+        trAB = th.trace(th.mm(self.A, self.B))
+        xPx = th.mm(self.Pt1.permute(1,0), th.sum(th.mul(self.X_hat, self.X_hat), dim=1).reshape(-1, 1)).reshape(-1, )
+        trBYPYP = th.trace(th.mm(th.mm(self.B, self.YPY), self.B))
+        self.q = (xPx - 2. * trAB + trBYPYP) / (2. * self.sigma2) + \
+            self.D * self.Np/2. * th.log(self.sigma2)
+        self.diff = th.abs(self.q - qprev)
 
         self.sigma2 = (xPx - trAB) / (self.Np * self.D)
 
-        if self.sigma2 <= 0:
-            self.sigma2 = self.tolerance / 10
+        if self.sigma2 <= 0.0:
+            self.sigma2 = th.tensor(self.tolerance / 10).float().to(self.device)
 
     def get_registration_parameters(self):
         """

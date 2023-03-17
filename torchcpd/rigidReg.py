@@ -114,11 +114,9 @@ class RigidRegistration(EMRegistration):
         """
         qprev = self.q
         trAR = th.trace(th.mm(self.A, self.R))
-        xPx = th.mm(self.Pt1.permute(1, 0), th.sum(
-            th.mul(self.X_hat, self.X_hat), dim=1).reshape(-1, 1)).reshape(-1, )
+        xPx = th.mm(self.Pt1.permute(1, 0), th.sum(th.mul(self.X_hat, self.X_hat), dim=1).reshape(-1, 1)).reshape(-1, )
         self.q = (xPx - 2 * self.s * trAR + self.s * self.s * self.YPY) / \
             (2 * self.sigma2) + self.D * self.Np/2 * th.log(self.sigma2)
-        print(self.q)
         self.diff = th.abs(self.q - qprev)
         self.sigma2 = (xPx - self.s * trAR) / (self.Np * self.D)
         if self.sigma2 <= 0:

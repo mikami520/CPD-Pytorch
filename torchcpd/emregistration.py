@@ -148,7 +148,7 @@ class EMRegistration(object):
             self.iterate()
             if callable(callback):
                 kwargs = {'iteration': self.iteration,
-                          'error': self.q, 'X': self.X, 'Y': self.TY}
+                          'error': self.q.detach().cpu().numpy(), 'X': self.X, 'Y': self.TY}
                 callback(**kwargs)
 
         return self.TY, self.get_registration_parameters()
