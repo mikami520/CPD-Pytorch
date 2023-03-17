@@ -51,7 +51,7 @@ class RigidRegistration(EMRegistration):
                 'The scale factor must be a positive number. Instead got: {}.'.format(s))
 
         self.R = th.eye(self.D).to(self.device) if R is None else R
-        self.t = th.atleast_2d(th.zeros((self.D, ))).to(self.device) if t is None else t
+        self.t = th.atleast_2d(th.zeros((1, self.D))).to(self.device) if t is None else t
         self.s = th.tensor(1).to(self.device) if s is None else s
         self.scale = scale
 
@@ -63,9 +63,9 @@ class RigidRegistration(EMRegistration):
         muX = th.div(th.sum(self.PX, dim=0),self.Np)
         # source point cloud mean
         muY = th.div(th.sum(th.mm(self.P.permute(1, 0), self.Y), dim=0), self.Np)
-        self.X_hat = self.X - th.tile(muX, (self.N, 1))
+        self.X_hat = th.sub(self.X, th.tile(muX, (self.N, 1)))
         # centered source point cloud
-        Y_hat = self.Y - th.tile(muY, (self.M, 1))
+        Y_hat = th.sub(self.Y, th.tile(muY, (self.M, 1)))
         self.YPY = th.mm(self.P1.permute(1, 0), th.sum(th.mul(Y_hat, Y_hat), dim=1).reshape(-1, 1)).reshape(-1, )
 
         self.A = th.mm(self.X_hat.permute(1, 0), self.P.permute(1, 0)).to(self.device)
@@ -83,7 +83,7 @@ class RigidRegistration(EMRegistration):
             self.s = th.trace(th.mm(self.A.permute(1, 0), self.R.permute(1, 0))) / self.YPY
         else:
             pass
-        self.t = muX - self.s * th.mm(self.R.permute(1, 0), muY.reshape(-1, 1)).reshape(-1, )
+        self.t = th.sub(muX.reshape(-1, 1), self.s * th.mm(self.R.permute(1, 0), muY.reshape(-1, 1))).permute(1, 0)
 
     def transform_point_cloud(self, Y=None):
         """
@@ -102,10 +102,10 @@ class RigidRegistration(EMRegistration):
         Otherwise, returns the transformed Y.
         """
         if Y is None:
-            self.TY = self.s * th.mm(self.Y, self.R) + self.t
+            self.TY = th.add(self.s * th.mm(self.Y, self.R), self.t)
             return
         else:
-            return self.s * th.mm(Y, self.R) + self.t
+            return th.add(self.s * th.mm(Y, self.R), self.t)
 
     def update_variance(self):
         """
@@ -115,12 +115,12 @@ class RigidRegistration(EMRegistration):
         qprev = self.q
         trAR = th.trace(th.mm(self.A, self.R))
         xPx = th.mm(self.Pt1.permute(1, 0), th.sum(th.mul(self.X_hat, self.X_hat), dim=1).reshape(-1, 1)).reshape(-1, )
-        self.q = (xPx - 2 * self.s * trAR + self.s * self.s * self.YPY) / \
-            (2 * self.sigma2) + self.D * self.Np/2 * th.log(self.sigma2)
+        self.q = (xPx - 2. * self.s * trAR + self.s * self.s * self.YPY) / \
+            (2. * self.sigma2) + self.D * self.Np/2. * th.log(self.sigma2)
         self.diff = th.abs(self.q - qprev)
         self.sigma2 = (xPx - self.s * trAR) / (self.Np * self.D)
         if self.sigma2 <= 0:
-            self.sigma2 = th.tensor(self.tolerance / 10).float().to(self.device)
+            self.sigma2 = th.tensor(self.tolerance / 10.).float().to(self.device)
 
     def get_registration_parameters(self):
         """
