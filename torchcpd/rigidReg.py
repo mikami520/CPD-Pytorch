@@ -125,8 +125,8 @@ class RigidRegistration(EMRegistration):
             (2. * self.sigma2) + self.D * self.Np/2. * th.log(self.sigma2)
         self.diff = th.abs(self.q - qprev)
         self.sigma2 = (xPx - self.s * trAR) / (self.Np * self.D)
-        if self.sigma2 <= 0.:
-            self.sigma2 = self.tolerance / 10.
+        if self.sigma2 <= 0:
+            self.sigma2 = th.tensor(self.tolerance / 10).float().to(self.device)
 
     def get_registration_parameters(self):
         """
