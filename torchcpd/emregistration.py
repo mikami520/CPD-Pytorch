@@ -2,7 +2,7 @@ import numpy as np
 import numbers
 from warnings import warn
 import torch as th
-
+import math
 
 def initialize_sigma2(X, Y):
     """
@@ -22,8 +22,8 @@ def initialize_sigma2(X, Y):
     """
     (N, D) = X.shape
     (M, _) = Y.shape
-    diff = X[None, :, :] - Y[:, None, :]
-    err = diff ** 2
+    diff = th.sub(X[None, :, :], Y[:, None, :])
+    err = th.pow(diff, 2)
     return th.sum(err) / (D * M * N)
 
 class EMRegistration(object):
@@ -76,11 +76,11 @@ class EMRegistration(object):
     """
 
     def __init__(self, X, Y, device, sigma2=None, max_iterations=None, tolerance=None, w=None, *args, **kwargs):
-        if type(X) is not th.Tensor or X.ndim != 2:
+        if type(X) is not np.ndarray or X.ndim != 2:
             raise ValueError(
                 "The target point cloud (X) must be at a 2D tensor array.")
 
-        if type(Y) is not th.Tensor or Y.ndim != 2:
+        if type(Y) is not np.ndarray or Y.ndim != 2:
             raise ValueError(
                 "The source point cloud (Y) must be a 2D numpy array.")
 
@@ -108,23 +108,29 @@ class EMRegistration(object):
                 "Expected a value between 0 (inclusive) and 1 (exclusive) for w instead got: {}".format(w))
 
         self.device = th.device(device)
-        self.X = X.to(self.device)
-        self.Y = Y.to(self.device)
-        self.TY = Y.to(self.device)
-        self.sigma2 = initialize_sigma2(X, Y).float().to(self.device) if sigma2 is None else sigma2
+        self.X = th.tensor(X, dtype=th.float64).float().to(self.device)
+        self.Y = th.tensor(Y, dtype=th.float64).float().to(self.device)
+        self.TY = th.tensor(Y, dtype=th.float64).float().to(self.device)
+        self.sigma2 = initialize_sigma2(self.X, self.Y) if sigma2 is None else sigma2
+        if type(self.sigma2) is not th.Tensor:
+            self.sigma2 = th.tensor(self.sigma2, dtype=th.float64).float().to(self.device)
         (self.N, self.D) = self.X.shape
         (self.M, _) = self.Y.shape
-        self.tolerance = 0.001 if tolerance is None else tolerance
-        self.w = 0.0 if w is None else w
+        self.tolerance = th.tensor(0.001, dtype=th.float64).float().to(self.device) if tolerance is None else tolerance
+        if type(self.tolerance) is not th.Tensor:
+            self.tolerance = th.tensor(self.tolerance, dtype=th.float64).float().to(self.device)
+        self.w = th.tensor(0.0, dtype=th.float64).float().to(self.device) if w is None else w
+        if type(self.w) is not th.Tensor:
+            self.w = th.tensor(self.w, dtype=th.float64).float().to(self.device)
         self.max_iterations = 100 if max_iterations is None else max_iterations
         self.iteration = 0
-        self.diff = th.tensor(np.inf)
-        self.q = th.tensor(np.inf)
-        self.P = th.zeros((self.M, self.N)).to(self.device)
-        self.Pt1 = th.zeros((self.N, 1)).to(self.device)
-        self.P1 = th.zeros((self.M, 1)).to(self.device)
-        self.PX = th.zeros((self.M, self.D)).to(self.device)
-        self.Np = 0
+        self.diff = th.tensor(np.inf, dtype=th.float64).float().to(self.device)
+        self.q = th.tensor(np.inf, dtype=th.float64).float().to(self.device)
+        self.P = th.zeros((self.M, self.N), dtype=th.float64).to(self.device)
+        self.Pt1 = th.zeros((self.N, 1), dtype=th.float64).to(self.device)
+        self.P1 = th.zeros((self.M, 1), dtype=th.float64).to(self.device)
+        self.PX = th.zeros((self.M, self.D), dtype=th.float64).to(self.device)
+        self.Np = th.tensor(0., dtype=th.float64).float().to(self.device)
 
     def register(self, callback=lambda **kwargs: None):
         """
@@ -193,9 +199,9 @@ class EMRegistration(object):
         """
         Compute the expectation step of the EM algorithm.
         """
-        P = th.sum((self.X[None, :, :] - self.TY[:, None, :])**2, dim=2) # (M, N)
-        P = th.exp(-P/(2*self.sigma2))
-        c = (2*th.tensor(np.pi)*self.sigma2)**(self.D/2)*self.w/(1. - self.w)*self.M/self.N
+        P = th.sum(th.pow(self.X[None, :, :] - self.TY[:, None, :], 2), dim=2) # (M, N)
+        P = th.exp(th.div(-P, (2.*self.sigma2)))
+        c = th.pow(2.*th.tensor(math.pi, dtype=th.float64)*self.sigma2, (self.D/2.))*self.w/(1. - self.w)*self.M/self.N
 
         den = th.sum(P, dim = 0, keepdims = True) # (1, N)
         den = th.clamp(den, th.finfo(self.X.dtype).eps, None) + c

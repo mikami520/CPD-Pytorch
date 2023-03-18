@@ -35,9 +35,12 @@ class AffineRegistration(EMRegistration):
             raise ValueError(
                 'The translation vector can only be initialized to 1x{} positive semi definite matrices. Instead got: {}.'.format(self.D, t))
         
-        self.B = th.eye(self.D).to(self.device) if B is None else B
-        self.t = th.atleast_2d(th.zeros((1, self.D))).to(self.device) if t is None else t
-
+        self.B = th.eye(self.D, dtype=th.float64).float().to(self.device) if B is None else B
+        if type(self.B) is not th.Tensor:
+            self.B = th.tensor(self.B, dtype=th.float64).float().to(self.device)
+        self.t = th.atleast_2d(th.zeros((1, self.D), dtype=th.float64)).float().to(self.device) if t is None else t
+        if type(self.t) is not th.Tensor:
+            self.t = th.tensor(self.t, dtype=th.float64).float().to(self.device)
         self.YPY = None
         self.X_hat = None
         self.A = None
@@ -98,14 +101,13 @@ class AffineRegistration(EMRegistration):
         trAB = th.trace(th.mm(self.A, self.B))
         xPx = th.mm(self.Pt1.permute(1,0), th.sum(th.mul(self.X_hat, self.X_hat), dim=1).reshape(-1, 1)).reshape(-1, )
         trBYPYP = th.trace(th.mm(th.mm(self.B, self.YPY), self.B))
-        self.q = (xPx - 2. * trAB + trBYPYP) / (2. * self.sigma2) + \
-            self.D * self.Np/2. * th.log(self.sigma2)
+        self.q = th.div((xPx - 2. * trAB + trBYPYP), (2. * self.sigma2)) + self.D * self.Np/2. * th.log(self.sigma2)
         self.diff = th.abs(self.q - qprev)
 
         self.sigma2 = (xPx - trAB) / (self.Np * self.D)
 
-        if self.sigma2 <= 0.0:
-            self.sigma2 = th.tensor(self.tolerance / 10).float().to(self.device)
+        if self.sigma2 <= 0.:
+            self.sigma2 = self.tolerance / 10.
 
     def get_registration_parameters(self):
         """

@@ -2,7 +2,7 @@ from builtins import super
 import numpy as np
 import numbers
 from .deformReg import DeformableRegistration
-
+import torch as th
 
 class ConstrainedDeformableRegistration(DeformableRegistration):
     """
@@ -36,13 +36,15 @@ class ConstrainedDeformableRegistration(DeformableRegistration):
             raise ValueError(
                 "The target ids (target_id) must be a 1D numpy array of ints.")
 
-        self.e_alpha = 1e-8 if e_alpha is None else e_alpha
-        self.source_id = source_id
-        self.target_id = target_id
-        self.P_tilde = np.zeros((self.M, self.N))
-        self.P_tilde[self.source_id, self.target_id] = 1
-        self.P1_tilde = np.sum(self.P_tilde, axis=1)
-        self.PX_tilde = np.dot(self.P_tilde, self.X)
+        self.e_alpha = th.tensor(1e-8, dtype=th.float64).float().to(self.device) if e_alpha is None else e_alpha
+        if type(self.e_alpha) is not th.Tensor:
+            self.e_alpha = th.tensor(self.e_alpha, dtype=th.float64).float().to(self.device)
+        self.source_id = th.tensor(source_id, dtype=th.int64).to(self.device)
+        self.target_id = th.tensor(target_id, dtype=th.int64).to(self.device)
+        self.P_tilde = th.zeros((self.M, self.N), dtype=th.float64).float().to(self.device)
+        self.P_tilde[self.source_id, self.target_id] = 1.
+        self.P1_tilde = th.sum(self.P_tilde, dim=1)
+        self.PX_tilde = th.mm(self.P_tilde, self.X)
 
     def update_transform(self):
         """
@@ -50,21 +52,21 @@ class ConstrainedDeformableRegistration(DeformableRegistration):
         See Eq. 22 of https://arxiv.org/pdf/0905.2635.pdf.
         """
         if self.low_rank is False:
-            A = np.dot(np.diag(self.P1), self.G) + \
-                self.sigma2*(1/self.e_alpha)*np.dot(np.diag(self.P1_tilde), self.G) + \
-                self.alpha * self.sigma2 * np.eye(self.M)
-            B = self.PX - np.dot(np.diag(self.P1), self.Y) + self.sigma2*(1/self.e_alpha)*(self.PX_tilde - np.dot(np.diag(self.P1_tilde), self.Y)) 
-            self.W = np.linalg.solve(A, B)
+            A = th.mm(th.diag(self.P1.reshape(-1, )), self.G) + \
+                self.sigma2*(th.div(1., self.e_alpha))*th.mm(th.diag(self.P1_tilde), self.G) + \
+                self.alpha * self.sigma2 * (th.eye(self.M, dtype=th.float64).float().to(self.device))
+            B = self.PX - th.mm(th.diag(self.P1.reshape(-1, )), self.Y) + self.sigma2*(th.div(1., self.e_alpha))*(self.PX_tilde - th.mm(th.diag(self.P1_tilde), self.Y)) 
+            self.W = th.linalg.solve(A, B)
 
-        elif self.low_rank is True:
+        else:
             # Matlab code equivalent can be found here:
             # https://github.com/markeroon/matlab-computer-vision-routines/tree/master/third_party/CoherentPointDrift
-            dP = np.diag(self.P1) + self.sigma2*(1/self.e_alpha)*np.diag(self.P1_tilde)
-            dPQ = np.matmul(dP, self.Q)
-            F = self.PX - np.dot(np.diag(self.P1), self.Y) + self.sigma2*(1/self.e_alpha)*(self.PX_tilde - np.dot(np.diag(self.P1_tilde), self.Y)) 
+            dP = th.diag(self.P1.reshape(-1, )) + self.sigma2*(th.div(1.,self.e_alpha))*th.diag(self.P1_tilde)
+            dPQ = th.mm(dP, self.Q)
+            F = self.PX - th.mm(th.diag(self.P1.reshape(-1, )), self.Y) + self.sigma2*(th.div(1.,self.e_alpha))*(self.PX_tilde - th.mm(th.diag(self.P1_tilde), self.Y)) 
 
-            self.W = 1 / (self.alpha * self.sigma2) * (F - np.matmul(dPQ, (
-                np.linalg.solve((self.alpha * self.sigma2 * self.inv_S + np.matmul(self.Q.T, dPQ)),
-                                (np.matmul(self.Q.T, F))))))
-            QtW = np.matmul(self.Q.T, self.W)
-            self.E = self.E + self.alpha / 2 * np.trace(np.matmul(QtW.T, np.matmul(self.S, QtW)))
+            self.W = th.div(1., (self.alpha * self.sigma2)) * (F - th.mm(dPQ, (
+                th.linalg.solve((self.alpha * self.sigma2 * self.inv_S + th.mm(self.Q.T, dPQ)),
+                                (th.mm(self.Q.T, F))))))
+            QtW = th.mm(self.Q.T, self.W)
+            self.E = self.E + self.alpha / 2 * th.trace(th.mm(QtW.T, th.mm(self.S, QtW)))

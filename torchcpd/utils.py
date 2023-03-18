@@ -3,9 +3,9 @@ import torch as th
 def gaussian_kernel(X, beta, Y=None):
     if Y is None:
         Y = X
-    diff = X[:, None, :] - Y[None, :,  :]
+    diff = th.sub(X[:, None, :], Y[None, :,  :])
     diff = th.square(diff)
-    diff = th.sum(diff, 2)
+    diff = th.sum(diff, dim=2)
     return th.exp(-diff / (2 * beta**2))
 
 
