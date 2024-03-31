@@ -12,4 +12,5 @@ torchcpd.egg-info/PKG-INFO
 torchcpd.egg-info/SOURCES.txt
 torchcpd.egg-info/dependency_links.txt
 torchcpd.egg-info/not-zip-safe
+torchcpd.egg-info/requires.txt
 torchcpd.egg-info/top_level.txt

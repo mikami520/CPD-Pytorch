@@ -107,7 +107,7 @@ class AffineRegistration(EMRegistration):
         self.sigma2 = (xPx - trAB) / (self.Np * self.D)
 
         if self.sigma2 <= 0.:
-            self.sigma2 = self.tolerance / 10.
+            self.sigma2 = (self.tolerance / 10.).clone()
 
     def get_registration_parameters(self):
         """

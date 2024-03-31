@@ -4,7 +4,7 @@ Version: 0.0.1
 Summary: Pure Numpy Implementation of the Coherent Point Drift Algorithm
 Home-page: https://github.com/mikami520/CPD-Pytorch
 Author: Yuliang Xiao
-Author-email: yxiao39@jhu.edu
+Author-email: yl.xiao@mail.utoronto.ca
 License: Apache
 Keywords: pytorch,image processing,point cloud,registration,mesh,surface
 Classifier: Development Status :: 3 - Alpha
@@ -15,3 +15,6 @@ Classifier: Programming Language :: Python :: 3.5
 Classifier: Programming Language :: Python :: 3.6
 Classifier: Topic :: Scientific/Engineering
 License-File: LICENSE.md
+Requires-Dist: torch
+Requires-Dist: future
+Requires-Dist: matplotlib

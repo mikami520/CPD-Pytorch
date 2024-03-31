@@ -1,3 +1,13 @@
+'''
+Author: Chris Xiao yl.xiao@mail.utoronto.ca
+Date: 2024-03-31 01:27:47
+LastEditors: Chris Xiao yl.xiao@mail.utoronto.ca
+LastEditTime: 2024-03-31 01:54:23
+FilePath: /CPD-Pytorch/examples/fish_affine_2D.py
+Description: 
+I Love IU
+Copyright (c) 2024 by Chris Xiao yl.xiao@mail.utoronto.ca, All Rights Reserved. 
+'''
 from functools import partial
 import matplotlib.pyplot as plt
 from torchcpd import AffineRegistration

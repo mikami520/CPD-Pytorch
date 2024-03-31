@@ -1,3 +1,13 @@
+'''
+Author: Chris Xiao yl.xiao@mail.utoronto.ca
+Date: 2024-03-31 01:27:47
+LastEditors: Chris Xiao yl.xiao@mail.utoronto.ca
+LastEditTime: 2024-03-31 01:53:12
+FilePath: /CPD-Pytorch/examples/bunny_rigid_3D.py
+Description: 3D rigid registration example using the bunny dataset.
+I Love IU
+Copyright (c) 2024 by Chris Xiao yl.xiao@mail.utoronto.ca, All Rights Reserved. 
+'''
 import argparse
 from functools import partial
 import matplotlib.pyplot as plt
@@ -28,9 +38,8 @@ def visualize(iteration, error, X, Y, ax, fig, save_fig=False):
     plt.pause(0.001)
 
 
-def main(save=False):
+def main():
     device = 'cuda:0' if th.cuda.is_available() else 'cpu'
-    print(save)
     X = np.loadtxt('../data/bunny_target.txt')
     # synthetic data, equaivalent to X + 1
     Y = np.loadtxt('../data/bunny_source.txt')
@@ -38,7 +47,7 @@ def main(save=False):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    callback = partial(visualize, ax=ax, fig=fig, save_fig=save[0] if type(save) is list else save)
+    callback = partial(visualize, ax=ax, fig=fig, save_fig=False)
 
     reg = RigidRegistration(**{'X': X, 'Y': Y, 'device': device})
     reg.register(callback)
@@ -46,16 +55,4 @@ def main(save=False):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Rigid registration example")
-    parser.add_argument(
-        "-s",
-        "--save",
-        type=bool,
-        nargs="+",
-        default=False,
-        help="True or False - to save figures of the example for a GIF etc.",
-    )
-    args = parser.parse_args()
-    print(args)
-
-    main(**vars(args))
+    main()

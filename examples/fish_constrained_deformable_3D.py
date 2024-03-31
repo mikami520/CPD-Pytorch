@@ -1,3 +1,13 @@
+'''
+Author: Chris Xiao yl.xiao@mail.utoronto.ca
+Date: 2024-03-31 01:27:47
+LastEditors: Chris Xiao yl.xiao@mail.utoronto.ca
+LastEditTime: 2024-03-31 01:59:07
+FilePath: /CPD-Pytorch/examples/fish_constrained_deformable_3D.py
+Description: constrained deformable registration example using the fish dataset.
+I Love IU
+Copyright (c) 2024 by Chris Xiao yl.xiao@mail.utoronto.ca, All Rights Reserved. 
+'''
 from functools import partial
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -57,9 +67,6 @@ def main():
     Y2 = np.ones((fish_source.shape[0], fish_source.shape[1] + 1))
     Y2[:, :-1] = fish_source
     Y = np.vstack((Y1, Y2))
-
-    print(Y1.shape)
-    print(X1.shape)
 
 
     # select fixed correspondences

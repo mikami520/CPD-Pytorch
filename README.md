@@ -1,2 +1,44 @@
+<!--
+ * @Author: Chris Xiao yl.xiao@mail.utoronto.ca
+ * @Date: 2024-03-31 01:27:47
+ * @LastEditors: Chris Xiao yl.xiao@mail.utoronto.ca
+ * @LastEditTime: 2024-03-31 02:10:02
+ * @FilePath: /CPD-Pytorch/README.md
+ * @Description: Readme file
+ * I Love IU
+ * Copyright (c) 2024 by Chris Xiao yl.xiao@mail.utoronto.ca, All Rights Reserved. 
+-->
 # CPD-Pytorch
 Coherent Point Drift Implementation in pytorch version
+
+
+# Installation
+```bash
+git clone https://github.com/mikami520/CPD-Pytorch.git
+cd CPD-Pytorch
+pip install -e .
+```
+
+# Example Usage
+```python
+from functools import partial
+import matplotlib.pyplot as plt
+from torchcpd import RigidRegistration
+import numpy as np
+import torch as th
+
+device = 'cuda:0' if th.cuda.is_available() else 'cpu'
+X = np.loadtxt('data/bunny_target.txt')
+# synthetic data, equaivalent to X + 1
+Y = np.loadtxt('data/bunny_source.txt')
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+callback = partial(visualize, ax=ax, fig=fig, save_fig=False)
+
+reg = RigidRegistration(**{'X': X, 'Y': Y, 'device': device})
+reg.register(callback)
+plt.show()
+```
+

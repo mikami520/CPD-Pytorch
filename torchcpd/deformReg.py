@@ -114,7 +114,7 @@ class DeformableRegistration(EMRegistration):
         self.sigma2 = th.div((xPx - 2. * trPXY + yPy), (self.Np * self.D))
 
         if self.sigma2 <= 0.:
-            self.sigma2 = self.tolerance / 10.
+            self.sigma2 = (self.tolerance / 10.).clone()
 
         # Here we use the difference between the current and previous
         # estimate of the variance as a proxy to test for convergence.

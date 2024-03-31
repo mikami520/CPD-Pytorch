@@ -1,3 +1,13 @@
+'''
+Author: Chris Xiao yl.xiao@mail.utoronto.ca
+Date: 2024-03-31 01:27:47
+LastEditors: Chris Xiao yl.xiao@mail.utoronto.ca
+LastEditTime: 2024-03-31 01:55:43
+FilePath: /CPD-Pytorch/setup.py
+Description: 
+I Love IU
+Copyright (c) 2024 by Chris Xiao yl.xiao@mail.utoronto.ca, All Rights Reserved. 
+'''
 from setuptools import setup
 '''
 def readme():
@@ -20,9 +30,9 @@ setup(name = 'torchcpd',
       ],
       keywords='pytorch, image processing, point cloud, registration, mesh, surface',
       author='Yuliang Xiao',
-      author_email='yxiao39@jhu.edu',
+      author_email='yl.xiao@mail.utoronto.ca',
       license='Apache',
       packages=['torchcpd'],
-      #install_requires=['pytorch', 'future'],
+      install_requires=['torch', 'future', 'matplotlib'],
       zip_safe=False
       )
