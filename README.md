@@ -2,7 +2,7 @@
  * @Author: Chris Xiao yl.xiao@mail.utoronto.ca
  * @Date: 2024-03-31 01:27:47
  * @LastEditors: Chris Xiao yl.xiao@mail.utoronto.ca
- * @LastEditTime: 2024-03-31 02:10:02
+ * @LastEditTime: 2024-03-31 02:12:20
  * @FilePath: /CPD-Pytorch/README.md
  * @Description: Readme file
  * I Love IU
@@ -41,4 +41,4 @@ reg = RigidRegistration(**{'X': X, 'Y': Y, 'device': device})
 reg.register(callback)
 plt.show()
 ```
-
+**More tutorials can be found in the ```/examples``` folder.**
