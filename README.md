@@ -42,3 +42,6 @@ reg.register(callback)
 plt.show()
 ```
 **More tutorials can be found in the ```/examples``` folder.**
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=mikami520/CPD-Pytorch&type=Date)](https://star-history.com/#mikami520/CPD-Pytorch&Date)
