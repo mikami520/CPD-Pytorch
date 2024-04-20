@@ -8,9 +8,9 @@
  * I Love IU
  * Copyright (c) 2024 by Chris Xiao yl.xiao@mail.utoronto.ca, All Rights Reserved. 
 -->
+![CPD-Pytorch](https://socialify.git.ci/mikami520/CPD-Pytorch/image?description=1&font=Source%20Code%20Pro&forks=1&issues=1&language=1&name=1&owner=1&pattern=Circuit%20Board&pulls=1&stargazers=1&theme=Light)
 # CPD-Pytorch
 Coherent Point Drift Implementation in pytorch version
-
 
 # Installation
 ```bash
