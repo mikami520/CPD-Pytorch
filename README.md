@@ -42,7 +42,6 @@ reg.register(callback)
 plt.show()
 ```
 **More tutorials can be found in the ```/examples``` folder.**
-## Star History
 
 ## Star History
 
