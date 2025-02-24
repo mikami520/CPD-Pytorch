@@ -43,7 +43,7 @@ plt.show()
 ```
 **More tutorials can be found in the ```/examples``` folder.**
 
-## Star History
+# Star History
 
 <p align="center">
   <a href="https://star-history.com/#mikami520/CPD-Pytorch&Date">
