@@ -45,12 +45,4 @@ plt.show()
 
 # Star History
 
-<p align="center">
-  <a href="https://star-history.com/#mikami520/CPD-Pytorch&Date">
-   <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mikami520/CPD-Pytorch&type=Date&theme=dark" />
-     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=mikami520/CPD-Pytorch&type=Date" />
-     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=mikami520/CPD-Pytorch&type=Date" />
-   </picture>
-  </a>
-</p>
+[![Star History Chart](https://api.star-history.com/svg?repos=mikami520/CPD-Pytorch&type=Date)](https://www.star-history.com/#mikami520/CPD-Pytorch&Date)
