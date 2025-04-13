@@ -54,3 +54,9 @@ plt.show()
    </picture>
   </a>
 </p>
+
+---
+<div align="center">
+<p>Developed by Chris Xiao | University of Toronto</p>
+<p>© 2025 All Rights Reserved</p>
+</div>
